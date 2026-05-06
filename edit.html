@@ -3,75 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แก้ไขข้อมูลสถานที่ (Admin)</title>
+    <title>จัดการสถานที่ (Edit/Delete)</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-white p-6 md:p-8 rounded-xl shadow-lg">
-        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">✏️ แก้ไข/ลบ สถานที่</h2>
-        
-        <!-- ส่วนเลือกสถานที่ -->
-        <div class="mb-6">
-            <label class="block text-sm font-semibold text-gray-700 mb-2">เลือกสถานที่ที่ต้องการจัดการ</label>
-            <select id="placeSelect" class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50">
-                <option value="">-- กำลังโหลดข้อมูล... --</option>
-            </select>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8 relative">
+
+    <div class="max-w-3xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">📋 จัดการข้อมูลสถานที่</h2>
+            <a href="admin.html" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-900">+ เพิ่มใหม่</a>
         </div>
 
-        <!-- ฟอร์มแก้ไข (จะซ่อนไว้จนกว่าจะเลือกสถานที่) -->
-        <form id="editForm" class="space-y-4 hidden">
-            <input type="hidden" id="docId"> <!-- เก็บ ID ของเอกสาร -->
-
-            <div>
-                <label class="block text-sm font-semibold text-gray-700">ชื่อสถานที่</label>
-                <input type="text" id="name" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700">ละติจูด (Lat)</label>
-                    <input type="number" step="any" id="lat" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700">ลองจิจูด (Lng)</label>
-                    <input type="number" step="any" id="lng" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-semibold text-gray-700">คำอธิบาย (ภาษาไทย)</label>
-                <textarea id="descTh" required rows="3" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-gray-700">คำอธิบาย (ภาษาอังกฤษ - แก้ไขได้)</label>
-                <textarea id="descEn" rows="3" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-600"></textarea>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-semibold text-gray-700">ลิงก์รูปภาพ (URL)</label>
-                <input type="text" id="imageUrl" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none text-xs text-gray-500">
-            </div>
-            
-            <div class="flex gap-3 pt-2">
-                <button type="submit" id="updateBtn" class="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-200">
-                    💾 บันทึกแก้ไข
-                </button>
-                <button type="button" id="deleteBtn" class="flex-1 bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition duration-200">
-                    🗑️ ลบข้อมูล
-                </button>
-            </div>
-            
-            <div id="statusBox" class="hidden p-3 rounded-lg text-sm text-center font-medium mt-2"></div>
-        </form>
-        
-        <div class="mt-4 text-center">
-            <a href="admin.html" class="text-sm text-blue-600 hover:underline">กลับไปหน้าเพิ่มสถานที่ (+ Add)</a>
+        <!-- รายการสถานที่ (List View) -->
+        <div id="placesList" class="space-y-3">
+            <div class="text-center text-gray-500 py-8">กำลังโหลดข้อมูล...</div>
         </div>
     </div>
 
+    <!-- Modal หน้าต่างแก้ไขข้อมูล (ซ่อนไว้เป็นค่าเริ่มต้น) -->
+    <div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">✏️ แก้ไขสถานที่</h3>
+                <button type="button" onclick="closeModal()" class="text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
+            </div>
+
+            <form id="editForm" class="space-y-4">
+                <input type="hidden" id="editId">
+                <input type="hidden" id="oldImageUrl">
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">ชื่อสถานที่</label>
+                    <input type="text" id="editName" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">ละติจูด (Lat)</label>
+                        <input type="number" step="any" id="editLat" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">ลองจิจูด (Lng)</label>
+                        <input type="number" step="any" id="editLng" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">คำอธิบาย (ภาษาไทย)</label>
+                    <textarea id="editDescTh" required rows="2" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">คำอธิบาย (ภาษาอังกฤษ)</label>
+                    <textarea id="editDescEn" rows="2" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">เปลี่ยนรูปภาพใหม่ (ถ้าต้องการเปลี่ยน)</label>
+                    <input type="file" id="editImageFile" accept="image/*" class="w-full border border-gray-300 p-2 rounded-lg mt-1 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700">
+                    <p class="text-xs text-gray-400 mt-1">* หากไม่เลือกไฟล์ใหม่ ระบบจะใช้รูปภาพเดิม</p>
+                </div>
+                
+                <button type="submit" id="updateBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                    💾 บันทึกการแก้ไข
+                </button>
+                <div id="modalStatus" class="hidden p-3 rounded-lg text-sm text-center font-medium mt-2"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script type="module">
-        // นำเข้า Firebase และฟังก์ชันที่จำเป็น (เพิ่ม updateDoc และ deleteDoc)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
         import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
@@ -89,112 +91,138 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let placesData = {}; // ตัวแปรเก็บข้อมูลชั่วคราว
+        // 🟢 เปลี่ยนค่าตรงนี้เป็นของคุณ 🟢
+        const CLOUD_NAME = "ใส่_CLOUD_NAME_ของคุณ"; 
+        const UPLOAD_PRESET = "ใส่_UPLOAD_PRESET_ของคุณ";
+        const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
-        // 1. ดึงข้อมูลสถานที่ทั้งหมดมาใส่ใน Dropdown
-        async function loadDropdown() {
-            const select = document.getElementById('placeSelect');
+        let placesData = {}; // เก็บข้อมูลไว้ใช้ตอนเปิด Modal
+
+        // 1. ดึงข้อมูลและสร้าง List (แถว)
+        window.loadList = async function() {
+            const listContainer = document.getElementById('placesList');
             try {
                 const querySnapshot = await getDocs(collection(db, "places"));
-                select.innerHTML = '<option value="">-- กรุณาเลือกสถานที่ --</option>';
+                listContainer.innerHTML = ''; // Clear loading text
+                placesData = {}; 
+
+                if (querySnapshot.empty) {
+                    listContainer.innerHTML = '<div class="text-center text-gray-500 py-8 bg-white rounded-xl shadow">ไม่มีข้อมูลสถานที่</div>';
+                    return;
+                }
                 
                 querySnapshot.forEach((document) => {
-                    placesData[document.id] = document.data(); // เก็บข้อมูลไว้ในตัวแปร
-                    const option = document.createElement('option');
-                    option.value = document.id;
-                    option.textContent = document.data().name;
-                    select.appendChild(option);
+                    const id = document.id;
+                    const data = document.data();
+                    placesData[id] = data; // บันทึกเก็บไว้
+
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between p-4 bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition';
+                    row.innerHTML = `
+                        <div class="flex items-center gap-4 overflow-hidden">
+                            <img src="${data.imageUrl}" class="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg bg-gray-200 flex-shrink-0" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
+                            <div class="truncate">
+                                <h3 class="font-bold text-gray-800 text-lg truncate">${data.name}</h3>
+                                <p class="text-xs text-gray-500">Lat: ${data.lat}, Lng: ${data.lng}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col md:flex-row gap-2 ml-4">
+                            <button onclick="openModal('${id}')" class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-blue-200 whitespace-nowrap">✏️ แก้ไข</button>
+                            <button onclick="deletePlace('${id}', '${data.name}')" class="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-red-200 whitespace-nowrap">🗑️ ลบ</button>
+                        </div>
+                    `;
+                    listContainer.appendChild(row);
                 });
             } catch (error) {
-                select.innerHTML = '<option value="">เกิดข้อผิดพลาดในการโหลดข้อมูล</option>';
+                listContainer.innerHTML = '<div class="text-center text-red-500 py-8">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>';
             }
         }
 
-        // 2. เมื่อเลือก Dropdown ให้เอาข้อมูลมาใส่ในฟอร์ม
-        document.getElementById('placeSelect').addEventListener('change', (e) => {
-            const id = e.target.value;
-            const form = document.getElementById('editForm');
-            const statusBox = document.getElementById('statusBox');
-            statusBox.classList.add('hidden'); // ซ่อนแจ้งเตือนเก่า
+        // 2. ฟังก์ชันเปิดหน้าต่างแก้ข้อมูล (Modal)
+        window.openModal = function(id) {
+            const data = placesData[id];
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = data.name;
+            document.getElementById('editLat').value = data.lat;
+            document.getElementById('editLng').value = data.lng;
+            document.getElementById('editDescTh').value = data.descTh;
+            document.getElementById('editDescEn').value = data.descEn || '';
+            document.getElementById('oldImageUrl').value = data.imageUrl; // เก็บ URL เก่าเผื่อไม่เปลี่ยนรูป
+            document.getElementById('editImageFile').value = ''; // เคลียร์ช่องเลือกไฟล์
             
-            if(id) {
-                form.classList.remove('hidden');
-                document.getElementById('docId').value = id;
-                document.getElementById('name').value = placesData[id].name;
-                document.getElementById('lat').value = placesData[id].lat;
-                document.getElementById('lng').value = placesData[id].lng;
-                document.getElementById('descTh').value = placesData[id].descTh;
-                document.getElementById('descEn').value = placesData[id].descEn || '';
-                document.getElementById('imageUrl').value = placesData[id].imageUrl;
-            } else {
-                form.classList.add('hidden');
-            }
-        });
+            document.getElementById('editModal').classList.remove('hidden');
+        }
 
-        function showStatus(message, type) {
-            const statusBox = document.getElementById('statusBox');
-            statusBox.classList.remove('hidden', 'bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
-            if(type === 'loading') statusBox.classList.add('bg-blue-100', 'text-blue-700');
-            else if(type === 'success') statusBox.classList.add('bg-green-100', 'text-green-700');
-            else if(type === 'error') statusBox.classList.add('bg-red-100', 'text-red-700');
-            statusBox.innerText = message;
+        window.closeModal = function() {
+            document.getElementById('editModal').classList.add('hidden');
         }
 
         // 3. ฟังก์ชันอัปเดตข้อมูล
         document.getElementById('editForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = document.getElementById('docId').value;
+            const id = document.getElementById('editId').value;
             const btn = document.getElementById('updateBtn');
+            const statusBox = document.getElementById('modalStatus');
+            const fileInput = document.getElementById('editImageFile');
             
             btn.disabled = true;
-            showStatus("กำลังอัปเดตข้อมูล...", 'loading');
+            statusBox.classList.remove('hidden', 'bg-red-100', 'text-red-700');
+            statusBox.classList.add('bg-blue-100', 'text-blue-700');
+            statusBox.innerText = "กำลังประมวลผล...";
 
             try {
-                const docRef = doc(db, "places", id);
-                await updateDoc(docRef, {
-                    name: document.getElementById('name').value,
-                    lat: parseFloat(document.getElementById('lat').value),
-                    lng: parseFloat(document.getElementById('lng').value),
-                    descTh: document.getElementById('descTh').value,
-                    descEn: document.getElementById('descEn').value,
-                    imageUrl: document.getElementById('imageUrl').value
+                let finalImageUrl = document.getElementById('oldImageUrl').value; // ค่าเริ่มต้นคือรูปเก่า
+
+                // ถ้ามีการเลือกไฟล์รูปใหม่ ให้ส่งไป Cloudinary ก่อน
+                if (fileInput.files.length > 0) {
+                    statusBox.innerText = "กำลังอัปโหลดรูปภาพใหม่...";
+                    const formData = new FormData();
+                    formData.append("file", fileInput.files[0]);
+                    formData.append("upload_preset", UPLOAD_PRESET);
+
+                    const res = await fetch(CLOUDINARY_URL, { method: "POST", body: formData });
+                    const cloudinaryData = await res.json();
+                    if (!res.ok) throw new Error("อัปโหลดรูปล้มเหลว");
+                    finalImageUrl = cloudinaryData.secure_url;
+                }
+
+                statusBox.innerText = "กำลังบันทึกข้อมูล...";
+                
+                // บันทึกลง Firestore
+                await updateDoc(doc(db, "places", id), {
+                    name: document.getElementById('editName').value,
+                    lat: parseFloat(document.getElementById('editLat').value),
+                    lng: parseFloat(document.getElementById('editLng').value),
+                    descTh: document.getElementById('editDescTh').value,
+                    descEn: document.getElementById('editDescEn').value,
+                    imageUrl: finalImageUrl
                 });
                 
-                showStatus("อัปเดตข้อมูลสำเร็จ!", 'success');
-                loadDropdown(); // โหลดข้อมูลใหม่เผื่อมีการเปลี่ยนชื่อ
-                setTimeout(() => document.getElementById('statusBox').classList.add('hidden'), 3000);
+                closeModal();
+                loadList(); // รีเฟรชรายการใหม่
             } catch (error) {
-                showStatus("เกิดข้อผิดพลาด: " + error.message, 'error');
+                statusBox.classList.remove('bg-blue-100', 'text-blue-700');
+                statusBox.classList.add('bg-red-100', 'text-red-700');
+                statusBox.innerText = "Error: " + error.message;
             } finally {
                 btn.disabled = false;
             }
         });
 
         // 4. ฟังก์ชันลบข้อมูล
-        document.getElementById('deleteBtn').addEventListener('click', async () => {
-            const id = document.getElementById('docId').value;
-            const name = document.getElementById('name').value;
-            
-            if(confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบสถานที่ "${name}" ?\n(การกระทำนี้ไม่สามารถกู้คืนได้)`)) {
-                const btn = document.getElementById('deleteBtn');
-                btn.disabled = true;
-                showStatus("กำลังลบข้อมูล...", 'loading');
-
+        window.deletePlace = async function(id, name) {
+            if(confirm(`ยืนยันการลบสถานที่ "${name}" หรือไม่?\n(ลบแล้วไม่สามารถกู้คืนได้)`)) {
                 try {
                     await deleteDoc(doc(db, "places", id));
-                    document.getElementById('editForm').classList.add('hidden');
-                    document.getElementById('placeSelect').value = "";
-                    showStatus("ลบข้อมูลสำเร็จ!", 'success');
-                    loadDropdown(); // โหลดรายการใหม่
+                    loadList(); // รีเฟรชรายการใหม่ทันที
                 } catch (error) {
-                    showStatus("เกิดข้อผิดพลาดในการลบ: " + error.message, 'error');
-                    btn.disabled = false;
+                    alert("เกิดข้อผิดพลาดในการลบ: " + error.message);
                 }
             }
-        });
+        }
 
-        // เริ่มต้นโหลดข้อมูลเมื่อเปิดหน้าเว็บ
-        loadDropdown();
+        // โหลดข้อมูลครั้งแรก
+        loadList();
     </script>
 </body>
 </html>
