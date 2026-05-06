@@ -20,35 +20,46 @@
         /* บังคับใช้ฟอนต์ Chakra Petch ทั้งเว็บไซต์ */
         body { font-family: 'Chakra Petch', sans-serif; }
         
-        #map { height: 60vh; width: 100%; z-index: 1; }
+        #map { height: 58vh; width: 100%; z-index: 1; }
+        
+        /* ปรับ Slider ให้การ์ดมีขนาดเท่ากัน */
         .slider-container { 
-            height: 40vh; 
+            height: 42vh; 
             overflow-x: auto; 
             scroll-snap-type: x mandatory; 
             display: flex; 
             padding: 1rem; 
             gap: 1rem; 
             background: #f3f4f6; 
+            align-items: stretch; /* บังคับให้ความสูงเท่ากันทุกอัน */
         }
+        
         .card { 
-            min-width: 85%; 
+            min-width: 85%; /* ขนาดความกว้างบนมือถือ */
+            max-width: 85%;
+            height: auto; /* ขยายตาม stretch ของ container */
             scroll-snap-align: center; 
             background: white; 
-            border-radius: 12px; 
+            border-radius: 16px; 
             overflow: hidden; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08); 
             display: flex;
             flex-direction: column;
         }
+        
         @media (min-width: 768px) {
-            .card { min-width: 300px; }
+            .card { min-width: 300px; max-width: 300px; } /* ขนาดบนคอมพิวเตอร์ */
         }
+        
         .card img { 
-            height: 150px; 
+            height: 140px; /* ล็อกความสูงรูปภาพให้เท่ากัน */
             width: 100%; 
             object-fit: cover; 
             background-color: #e5e7eb;
+            flex-shrink: 0;
         }
+        
+        /* ซ่อน Scrollbar แต่อยู่ให้เลื่อนได้ */
         .slider-container::-webkit-scrollbar { display: none; }
         .slider-container { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -89,6 +100,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
+        // ข้อมูล Firebase ของคุณ
         const firebaseConfig = {
             apiKey: "AIzaSyBvXRATBf2x1Lq_JToL2rlQYOh8mK65tIU",
             authDomain: "suchartstudio-9a78d.firebaseapp.com",
@@ -103,6 +115,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // ตั้งค่าแผนที่เริ่มต้น
         const map = L.map('map').setView([16.4322, 102.8236], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap',
@@ -110,22 +123,19 @@
         }).addTo(map);
 
         // --- ระบบจัดทริปนำทาง (Route Planner Logic) ---
-        window.selectedPlaces = []; // ตัวแปรเก็บสถานที่ที่เลือกเรียงตามลำดับ
+        window.selectedPlaces = []; 
 
-        // ฟังก์ชันเลือก/ยกเลิกสถานที่
         window.toggleRoute = function(id, name, lat, lng) {
             const index = window.selectedPlaces.findIndex(p => p.id === id);
             const btn = document.getElementById(`btn-${id}`);
             
             if(index > -1) {
-                // ถ้ามีอยู่แล้วให้เอาออก
                 window.selectedPlaces.splice(index, 1);
                 if(btn) {
                     btn.innerHTML = "📍 เพิ่มลงทริป";
                     btn.className = "mt-3 bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm";
                 }
             } else {
-                // ถ้ายังไม่มีให้เพิ่มเข้าไป
                 window.selectedPlaces.push({ id, name, lat, lng });
                 if(btn) {
                     btn.innerHTML = "✅ เลือกแล้ว";
@@ -135,11 +145,9 @@
             window.updateRouteUI();
         }
 
-        // ฟังก์ชันอัปเดตหน้าต่างสรุปทริป
         window.updateRouteUI = function() {
             const count = window.selectedPlaces.length;
             document.getElementById('routeBadge').innerText = count;
-            
             const list = document.getElementById('routeList');
             list.innerHTML = '';
             
@@ -156,22 +164,14 @@
             }
         }
 
-        // ฟังก์ชันเปิด/ปิดหน้าต่างทริป
         window.toggleRoutePanel = function() {
             const panel = document.getElementById('routePanel');
-            if(panel.classList.contains('hidden')) {
-                panel.classList.remove('hidden');
-                panel.classList.add('flex');
-            } else {
-                panel.classList.add('hidden');
-                panel.classList.remove('flex');
-            }
+            panel.classList.toggle('hidden');
+            panel.classList.toggle('flex');
         }
 
-        // ฟังก์ชันล้างข้อมูลทริป
         window.clearRoute = function() {
             window.selectedPlaces = [];
-            // รีเซ็ตปุ่มทั้งหมดกลับเป็นสีฟ้า
             document.querySelectorAll('[id^="btn-"]').forEach(btn => {
                 btn.innerHTML = "📍 เพิ่มลงทริป";
                 btn.className = "mt-3 bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm";
@@ -180,23 +180,17 @@
             window.toggleRoutePanel(); 
         }
 
-        // ฟังก์ชันส่งพิกัดไป Google Maps
         window.startNavigation = function() {
             if(window.selectedPlaces.length === 0) {
                 alert("กรุณาเลือกสถานที่ที่ต้องการไปอย่างน้อย 1 แห่งครับ");
                 return;
             }
-            
-            // สร้าง URL Google Maps แบบหลายจุดแวะ (Waypoints)
-            // รูปแบบ: https://www.google.com/maps/dir/Lat1,Lng1/Lat2,Lng2/Lat3,Lng3
             const coordsString = window.selectedPlaces.map(p => `${p.lat},${p.lng}`).join('/');
             const mapsUrl = `https://www.google.com/maps/dir/${coordsString}`;
-            
-            // เปิดแท็บใหม่ (มือถือจะเด้งเข้าแอปอัตโนมัติ)
             window.open(mapsUrl, '_blank');
         }
 
-        // --- ระบบดึงข้อมูลแผนที่หลัก ---
+        // --- ระบบดึงข้อมูลแผนที่และการ์ด ---
         async function loadPlaces() {
             try {
                 const querySnapshot = await getDocs(collection(db, "places"));
@@ -213,25 +207,40 @@
                     const id = docSnapshot.id;
                     const data = docSnapshot.data();
                     
-                    const marker = L.marker([data.lat, data.lng]).addTo(map);
+                    // 🟢 สร้าง Custom Marker เป็นไอคอนวงกลมพร้อมรูปขนาดย่อ 🟢
+                    const customIcon = L.divIcon({
+                        className: '', // ล้างคลาสเริ่มต้นของ Leaflet
+                        html: `
+                            <div style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid white; overflow: hidden; box-shadow: 0px 4px 6px rgba(0,0,0,0.3); background: white;">
+                                <img src="${data.imageUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
+                            </div>
+                        `,
+                        iconSize: [48, 48],
+                        iconAnchor: [24, 24],
+                        popupAnchor: [0, -26]
+                    });
+
+                    // นำไอคอนวงกลมไปปักบนแผนที่
+                    const marker = L.marker([data.lat, data.lng], { icon: customIcon }).addTo(map);
                     marker.bindPopup(`<b class="text-base" style="font-family: 'Chakra Petch', sans-serif;">${data.name}</b>`);
 
+                    // สร้างการ์ดแสดงผล
                     const card = document.createElement('div');
                     card.className = 'card cursor-pointer';
-                    // เพิ่ม event.stopPropagation() เพื่อไม่ให้การกดปุ่มไปทริกเกอร์การเลื่อนแผนที่ของการ์ด
                     card.innerHTML = `
                         <img src="${data.imageUrl}" alt="${data.name}" onerror="this.onerror=null; this.src='https://placehold.co/400x200/eeeeee/999999?text=No+Image';">
-                        <div class="p-4 flex-1 flex flex-col justify-between">
+                        <div class="p-4 flex-1 flex flex-col justify-between overflow-hidden">
                             <div>
-                                <h3 class="text-lg font-bold text-gray-800 leading-tight">${data.name}</h3>
-                                <p class="text-sm text-gray-600 mt-1 line-clamp-2">${data.descTh}</p>
+                                <h3 class="text-lg font-bold text-gray-800 leading-tight truncate">${data.name}</h3>
+                                <p class="text-sm text-gray-600 mt-2 line-clamp-2">${data.descTh}</p>
                             </div>
-                            <button id="btn-${id}" onclick="event.stopPropagation(); window.toggleRoute('${id}', '${data.name}', ${data.lat}, ${data.lng})" class="mt-3 bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm">
+                            <button id="btn-${id}" onclick="event.stopPropagation(); window.toggleRoute('${id}', '${data.name}', ${data.lat}, ${data.lng})" class="mt-4 bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm shrink-0">
                                 📍 เพิ่มลงทริป
                             </button>
                         </div>
                     `;
                     
+                    // เมื่อคลิกการ์ด ให้เด้งแผนที่ไปหาหมุด
                     card.addEventListener('click', () => {
                         map.flyTo([data.lat, data.lng], 16, { duration: 1.5 });
                         setTimeout(() => marker.openPopup(), 1500);
