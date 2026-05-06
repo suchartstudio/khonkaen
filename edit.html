@@ -97,7 +97,7 @@
         const UPLOAD_PRESET = "khonkaen_preset";
         const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
-        let placesData = {}; // เก็บข้อมูลไว้ใช้ตอนเปิด Modal
+        let placesData = {}; 
 
         // 1. ดึงข้อมูลและสร้าง List (แถว)
         window.loadList = async function() {
@@ -112,11 +112,13 @@
                     return;
                 }
                 
-                querySnapshot.forEach((document) => {
-                    const id = document.id;
-                    const data = document.data();
+                // 🔴 แก้ไขการตั้งชื่อตัวแปรเพื่อป้องกันการทับซ้อน (Shadowing) 🔴
+                querySnapshot.forEach((docSnapshot) => {
+                    const id = docSnapshot.id;
+                    const data = docSnapshot.data();
                     placesData[id] = data; 
 
+                    // ตอนนี้ document จะหมายถึงคำสั่งสร้าง HTML ของเว็บแล้วครับ
                     const row = document.createElement('div');
                     row.className = 'flex items-center justify-between p-4 bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition';
                     row.innerHTML = `
@@ -135,7 +137,6 @@
                     listContainer.appendChild(row);
                 });
             } catch (error) {
-                // 🔴 จุดที่อัปเดต: พิมพ์ Error ลง Console และแสดงบนหน้าเว็บอย่างชัดเจน 🔴
                 console.error("รายละเอียด Error การดึงข้อมูล Firebase:", error);
                 listContainer.innerHTML = `<div class="text-center text-red-500 py-8 font-bold">เกิดข้อผิดพลาด: ${error.message}</div>`;
             }
