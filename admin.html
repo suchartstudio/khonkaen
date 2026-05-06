@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เพิ่มสถานที่ท่องเที่ยว (Admin)</title>
+    <!-- โหลด Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white p-6 md:p-8 rounded-xl shadow-lg">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">📍 เพิ่มสถานที่ (ขอนแก่น)</h2>
+        
+        <form id="addPlaceForm" class="space-y-5">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700">ชื่อสถานที่</label>
+                <input type="text" id="name" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">ละติจูด (Lat)</label>
+                    <input type="number" step="any" id="lat" required placeholder="16.4322" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">ลองจิจูด (Lng)</label>
+                    <input type="number" step="any" id="lng" required placeholder="102.8236" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-700">คำอธิบาย (ภาษาไทย)</label>
+                <textarea id="desc" required rows="3" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-700">ภาพถ่ายสถานที่</label>
+                <input type="file" id="imageFile" accept="image/*" required class="w-full border border-gray-300 p-2 rounded-lg mt-1 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <p class="text-xs text-gray-500 mt-1">* รูปจะถูกแปลและอัปโหลดไป Google Drive อัตโนมัติ</p>
+            </div>
+            
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 disabled:opacity-50 flex justify-center items-center">
+                บันทึกข้อมูล
+            </button>
+            
+            <div id="statusBox" class="hidden p-3 rounded-lg text-sm text-center font-medium"></div>
+        </form>
+    </div>
+
+    <script type="module">
+        // นำเข้า Firebase v12.12.1
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+        // Config ของคุณ
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvXRATBf2x1Lq_JToL2rlQYOh8mK65tIU",
+            authDomain: "suchartstudio-9a78d.firebaseapp.com",
+            databaseURL: "https://suchartstudio-9a78d-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "suchartstudio-9a78d",
+            storageBucket: "suchartstudio-9a78d.firebasestorage.app",
+            messagingSenderId: "953369646185",
+            appId: "1:953369646185:web:e51f0e821d4fba1e6ebef8",
+            measurementId: "G-LVGDE7H8ZK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // URL จาก Google Apps Script
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxykjEyBWj-HdywnTu4rxNSHZOtd5ec2o0um_DYmU8W0EM0tv8u1OSWsjOOLMn9BhzvSw/exec";
+
+        function showStatus(message, type) {
+            const statusBox = document.getElementById('statusBox');
+            statusBox.classList.remove('hidden', 'bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
+            
+            if(type === 'loading') {
+                statusBox.classList.add('bg-blue-100', 'text-blue-700');
+            } else if(type === 'success') {
+                statusBox.classList.add('bg-green-100', 'text-green-700');
+            } else if(type === 'error') {
+                statusBox.classList.add('bg-red-100', 'text-red-700');
+            }
+            
+            statusBox.innerText = message;
+        }
+
+        document.getElementById('addPlaceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = "กำลังดำเนินการ...";
+            
+            showStatus("กำลังอัปโหลดรูปภาพและแปลภาษา... (อาจใช้เวลาสักครู่)", 'loading');
+
+            const file = document.getElementById('imageFile').files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function() {
+                try {
+                    // 1. ส่งข้อมูลภาพและข้อความไป Google Apps Script
+                    const response = await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            filename: file.name,
+                            image: reader.result, // ข้อมูลภาพแบบ Base64
+                            descriptionTh: document.getElementById('desc').value
+                        })
+                    });
+                    
+                    const gasResult = await response.json();
+                    
+                    if(gasResult.success) {
+                        showStatus("แปลภาษาสำเร็จ กำลังบันทึกลงฐานข้อมูล...", 'loading');
+                        
+                        // 2. บันทึกข้อมูลทั้งหมดลง Firebase Firestore (Collection: places)
+                        await addDoc(collection(db, "places"), {
+                            name: document.getElementById('name').value,
+                            lat: parseFloat(document.getElementById('lat').value),
+                            lng: parseFloat(document.getElementById('lng').value),
+                            descTh: document.getElementById('desc').value,
+                            descEn: gasResult.descEn, // ข้อความภาษาอังกฤษที่ได้จาก GAS
+                            imageUrl: gasResult.imageUrl // ลิงก์รูปภาพจาก Google Drive
+                        });
+                        
+                        showStatus("บันทึกข้อมูลสถานที่สำเร็จเรียบร้อย!", 'success');
+                        document.getElementById('addPlaceForm').reset();
+                    } else {
+                        showStatus("เกิดข้อผิดพลาดจากระบบเซิร์ฟเวอร์: " + gasResult.error, 'error');
+                    }
+                } catch (error) {
+                    showStatus("เกิดข้อผิดพลาด: " + error.message, 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = "บันทึกข้อมูล";
+                    // ซ่อนข้อความแจ้งเตือนหลังจาก 5 วินาทีถ้าบันทึกสำเร็จ
+                    if(document.getElementById('statusBox').classList.contains('bg-green-100')) {
+                        setTimeout(() => document.getElementById('statusBox').classList.add('hidden'), 5000);
+                    }
+                }
+            };
+            
+            // เริ่มอ่านไฟล์ภาพ
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>
