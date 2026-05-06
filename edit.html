@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แก้ไขข้อมูลสถานที่ (Admin)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white p-6 md:p-8 rounded-xl shadow-lg">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">✏️ แก้ไข/ลบ สถานที่</h2>
+        
+        <!-- ส่วนเลือกสถานที่ -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">เลือกสถานที่ที่ต้องการจัดการ</label>
+            <select id="placeSelect" class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50">
+                <option value="">-- กำลังโหลดข้อมูล... --</option>
+            </select>
+        </div>
+
+        <!-- ฟอร์มแก้ไข (จะซ่อนไว้จนกว่าจะเลือกสถานที่) -->
+        <form id="editForm" class="space-y-4 hidden">
+            <input type="hidden" id="docId"> <!-- เก็บ ID ของเอกสาร -->
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700">ชื่อสถานที่</label>
+                <input type="text" id="name" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">ละติจูด (Lat)</label>
+                    <input type="number" step="any" id="lat" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">ลองจิจูด (Lng)</label>
+                    <input type="number" step="any" id="lng" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-700">คำอธิบาย (ภาษาไทย)</label>
+                <textarea id="descTh" required rows="3" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700">คำอธิบาย (ภาษาอังกฤษ - แก้ไขได้)</label>
+                <textarea id="descEn" rows="3" class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-600"></textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-700">ลิงก์รูปภาพ (URL)</label>
+                <input type="text" id="imageUrl" required class="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none text-xs text-gray-500">
+            </div>
+            
+            <div class="flex gap-3 pt-2">
+                <button type="submit" id="updateBtn" class="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-200">
+                    💾 บันทึกแก้ไข
+                </button>
+                <button type="button" id="deleteBtn" class="flex-1 bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition duration-200">
+                    🗑️ ลบข้อมูล
+                </button>
+            </div>
+            
+            <div id="statusBox" class="hidden p-3 rounded-lg text-sm text-center font-medium mt-2"></div>
+        </form>
+        
+        <div class="mt-4 text-center">
+            <a href="admin.html" class="text-sm text-blue-600 hover:underline">กลับไปหน้าเพิ่มสถานที่ (+ Add)</a>
+        </div>
+    </div>
+
+    <script type="module">
+        // นำเข้า Firebase และฟังก์ชันที่จำเป็น (เพิ่ม updateDoc และ deleteDoc)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvXRATBf2x1Lq_JToL2rlQYOh8mK65tIU",
+            authDomain: "suchartstudio-9a78d.firebaseapp.com",
+            databaseURL: "https://suchartstudio-9a78d-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "suchartstudio-9a78d",
+            storageBucket: "suchartstudio-9a78d.firebasestorage.app",
+            messagingSenderId: "953369646185",
+            appId: "1:953369646185:web:e51f0e821d4fba1e6ebef8",
+            measurementId: "G-LVGDE7H8ZK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let placesData = {}; // ตัวแปรเก็บข้อมูลชั่วคราว
+
+        // 1. ดึงข้อมูลสถานที่ทั้งหมดมาใส่ใน Dropdown
+        async function loadDropdown() {
+            const select = document.getElementById('placeSelect');
+            try {
+                const querySnapshot = await getDocs(collection(db, "places"));
+                select.innerHTML = '<option value="">-- กรุณาเลือกสถานที่ --</option>';
+                
+                querySnapshot.forEach((document) => {
+                    placesData[document.id] = document.data(); // เก็บข้อมูลไว้ในตัวแปร
+                    const option = document.createElement('option');
+                    option.value = document.id;
+                    option.textContent = document.data().name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                select.innerHTML = '<option value="">เกิดข้อผิดพลาดในการโหลดข้อมูล</option>';
+            }
+        }
+
+        // 2. เมื่อเลือก Dropdown ให้เอาข้อมูลมาใส่ในฟอร์ม
+        document.getElementById('placeSelect').addEventListener('change', (e) => {
+            const id = e.target.value;
+            const form = document.getElementById('editForm');
+            const statusBox = document.getElementById('statusBox');
+            statusBox.classList.add('hidden'); // ซ่อนแจ้งเตือนเก่า
+            
+            if(id) {
+                form.classList.remove('hidden');
+                document.getElementById('docId').value = id;
+                document.getElementById('name').value = placesData[id].name;
+                document.getElementById('lat').value = placesData[id].lat;
+                document.getElementById('lng').value = placesData[id].lng;
+                document.getElementById('descTh').value = placesData[id].descTh;
+                document.getElementById('descEn').value = placesData[id].descEn || '';
+                document.getElementById('imageUrl').value = placesData[id].imageUrl;
+            } else {
+                form.classList.add('hidden');
+            }
+        });
+
+        function showStatus(message, type) {
+            const statusBox = document.getElementById('statusBox');
+            statusBox.classList.remove('hidden', 'bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
+            if(type === 'loading') statusBox.classList.add('bg-blue-100', 'text-blue-700');
+            else if(type === 'success') statusBox.classList.add('bg-green-100', 'text-green-700');
+            else if(type === 'error') statusBox.classList.add('bg-red-100', 'text-red-700');
+            statusBox.innerText = message;
+        }
+
+        // 3. ฟังก์ชันอัปเดตข้อมูล
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('docId').value;
+            const btn = document.getElementById('updateBtn');
+            
+            btn.disabled = true;
+            showStatus("กำลังอัปเดตข้อมูล...", 'loading');
+
+            try {
+                const docRef = doc(db, "places", id);
+                await updateDoc(docRef, {
+                    name: document.getElementById('name').value,
+                    lat: parseFloat(document.getElementById('lat').value),
+                    lng: parseFloat(document.getElementById('lng').value),
+                    descTh: document.getElementById('descTh').value,
+                    descEn: document.getElementById('descEn').value,
+                    imageUrl: document.getElementById('imageUrl').value
+                });
+                
+                showStatus("อัปเดตข้อมูลสำเร็จ!", 'success');
+                loadDropdown(); // โหลดข้อมูลใหม่เผื่อมีการเปลี่ยนชื่อ
+                setTimeout(() => document.getElementById('statusBox').classList.add('hidden'), 3000);
+            } catch (error) {
+                showStatus("เกิดข้อผิดพลาด: " + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // 4. ฟังก์ชันลบข้อมูล
+        document.getElementById('deleteBtn').addEventListener('click', async () => {
+            const id = document.getElementById('docId').value;
+            const name = document.getElementById('name').value;
+            
+            if(confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบสถานที่ "${name}" ?\n(การกระทำนี้ไม่สามารถกู้คืนได้)`)) {
+                const btn = document.getElementById('deleteBtn');
+                btn.disabled = true;
+                showStatus("กำลังลบข้อมูล...", 'loading');
+
+                try {
+                    await deleteDoc(doc(db, "places", id));
+                    document.getElementById('editForm').classList.add('hidden');
+                    document.getElementById('placeSelect').value = "";
+                    showStatus("ลบข้อมูลสำเร็จ!", 'success');
+                    loadDropdown(); // โหลดรายการใหม่
+                } catch (error) {
+                    showStatus("เกิดข้อผิดพลาดในการลบ: " + error.message, 'error');
+                    btn.disabled = false;
+                }
+            }
+        });
+
+        // เริ่มต้นโหลดข้อมูลเมื่อเปิดหน้าเว็บ
+        loadDropdown();
+    </script>
+</body>
+</html>
