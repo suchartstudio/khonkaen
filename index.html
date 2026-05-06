@@ -20,24 +20,24 @@
         /* บังคับใช้ฟอนต์ Chakra Petch ทั้งเว็บไซต์ */
         body { font-family: 'Chakra Petch', sans-serif; }
         
-        #map { height: 58vh; width: 100%; z-index: 1; }
+        /* ปรับสัดส่วน แผนที่ 55% : การ์ด 45% เพื่อให้ปุ่มไม่หายบนมือถือ */
+        #map { height: 55vh; width: 100%; z-index: 1; }
         
-        /* ปรับ Slider ให้การ์ดมีขนาดเท่ากัน */
         .slider-container { 
-            height: 42vh; 
+            height: 45vh; 
             overflow-x: auto; 
             scroll-snap-type: x mandatory; 
             display: flex; 
             padding: 1rem; 
             gap: 1rem; 
             background: #f3f4f6; 
-            align-items: stretch; /* บังคับให้ความสูงเท่ากันทุกอัน */
+            align-items: stretch; 
         }
         
         .card { 
-            min-width: 85%; /* ขนาดความกว้างบนมือถือ */
+            min-width: 85%; 
             max-width: 85%;
-            height: auto; /* ขยายตาม stretch ของ container */
+            height: 100%; /* ให้เต็มพื้นที่ 45vh */
             scroll-snap-align: center; 
             background: white; 
             border-radius: 16px; 
@@ -48,31 +48,57 @@
         }
         
         @media (min-width: 768px) {
-            .card { min-width: 300px; max-width: 300px; } /* ขนาดบนคอมพิวเตอร์ */
+            .card { min-width: 300px; max-width: 300px; }
         }
         
+        /* ปรับขนาดรูปให้พอดี ไม่แย่งที่ปุ่ม */
         .card img { 
-            height: 140px; /* ล็อกความสูงรูปภาพให้เท่ากัน */
+            height: 130px; 
             width: 100%; 
             object-fit: cover; 
             background-color: #e5e7eb;
             flex-shrink: 0;
         }
         
-        /* ซ่อน Scrollbar แต่อยู่ให้เลื่อนได้ */
         .slider-container::-webkit-scrollbar { display: none; }
         .slider-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* --- CSS สำหรับปรับแต่ง Popup แผนที่โปร่งใส --- */
+        .transparent-popup .leaflet-popup-content-wrapper {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+        .transparent-popup .leaflet-popup-tip-container {
+            display: none; /* ซ่อนลูกศรชี้ลง */
+        }
+        .transparent-popup .leaflet-popup-content {
+            margin: 0;
+            text-align: center;
+        }
+        .custom-text-outline {
+            color: #ffffff;
+            font-size: 1.1rem;
+            white-space: nowrap;
+            /* สร้างขอบสีดำรอบตัวหนังสือ */
+            text-shadow: 
+                -2px -2px 0 #000,  
+                 2px -2px 0 #000,
+                -2px  2px 0 #000,
+                 2px  2px 0 #000,
+                 0px  4px 6px rgba(0,0,0,0.8);
+        }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden relative">
 
-    <!-- ปุ่มเปิดหน้าต่าง จัดทริป (ลอยอยู่มุมขวาบน) -->
+    <!-- ปุ่มจัดทริป -->
     <button onclick="window.toggleRoutePanel()" class="fixed top-4 right-4 z-[1000] bg-blue-600 text-white px-4 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition">
         🗺️ จัดทริป 
         <span id="routeBadge" class="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-inner">0</span>
     </button>
 
-    <!-- หน้าต่างสรุปทริปนำทาง (ซ่อนไว้เป็นค่าเริ่มต้น) -->
+    <!-- หน้าต่างสรุปทริปนำทาง -->
     <div id="routePanel" class="fixed top-16 right-4 z-[1000] bg-white rounded-xl shadow-2xl p-4 w-72 hidden flex-col gap-3 border border-gray-100 max-h-[50vh]">
         <h3 class="font-bold text-gray-800 text-lg border-b pb-2">🚗 เส้นทางของคุณ</h3>
         <ul id="routeList" class="text-sm text-gray-600 space-y-2 overflow-y-auto">
@@ -116,13 +142,14 @@
         const db = getFirestore(app);
 
         // ตั้งค่าแผนที่เริ่มต้น
-        const map = L.map('map').setView([16.4322, 102.8236], 13);
+        const map = L.map('map', { zoomControl: false }).setView([16.4322, 102.8236], 13);
+        L.control.zoom({ position: 'topleft' }).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap',
             maxZoom: 19
         }).addTo(map);
 
-        // --- ระบบจัดทริปนำทาง (Route Planner Logic) ---
+        // --- ระบบจัดทริปนำทาง ---
         window.selectedPlaces = []; 
 
         window.toggleRoute = function(id, name, lat, lng) {
@@ -133,13 +160,13 @@
                 window.selectedPlaces.splice(index, 1);
                 if(btn) {
                     btn.innerHTML = "📍 เพิ่มลงทริป";
-                    btn.className = "mt-3 bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm";
+                    btn.className = "mt-auto bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm shrink-0";
                 }
             } else {
                 window.selectedPlaces.push({ id, name, lat, lng });
                 if(btn) {
                     btn.innerHTML = "✅ เลือกแล้ว";
-                    btn.className = "mt-3 bg-green-50 text-green-700 border border-green-300 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-green-100 transition shadow-sm";
+                    btn.className = "mt-auto bg-green-50 text-green-700 border border-green-300 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-green-100 transition shadow-sm shrink-0";
                 }
             }
             window.updateRouteUI();
@@ -174,7 +201,7 @@
             window.selectedPlaces = [];
             document.querySelectorAll('[id^="btn-"]').forEach(btn => {
                 btn.innerHTML = "📍 เพิ่มลงทริป";
-                btn.className = "mt-3 bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm";
+                btn.className = "mt-auto bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm shrink-0";
             });
             window.updateRouteUI();
             window.toggleRoutePanel(); 
@@ -207,9 +234,9 @@
                     const id = docSnapshot.id;
                     const data = docSnapshot.data();
                     
-                    // 🟢 สร้าง Custom Marker เป็นไอคอนวงกลมพร้อมรูปขนาดย่อ 🟢
+                    // ไอคอนภาพขนาดย่อ
                     const customIcon = L.divIcon({
-                        className: '', // ล้างคลาสเริ่มต้นของ Leaflet
+                        className: '', 
                         html: `
                             <div style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid white; overflow: hidden; box-shadow: 0px 4px 6px rgba(0,0,0,0.3); background: white;">
                                 <img src="${data.imageUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
@@ -217,30 +244,36 @@
                         `,
                         iconSize: [48, 48],
                         iconAnchor: [24, 24],
-                        popupAnchor: [0, -26]
+                        popupAnchor: [0, -30] // เลื่อน Popup ขึ้นไปอีกนิดไม่ให้บังรูป
                     });
 
-                    // นำไอคอนวงกลมไปปักบนแผนที่
                     const marker = L.marker([data.lat, data.lng], { icon: customIcon }).addTo(map);
-                    marker.bindPopup(`<b class="text-base" style="font-family: 'Chakra Petch', sans-serif;">${data.name}</b>`);
+                    
+                    // 🟢 ผูก Popup โปร่งใส ข้อความสีขาว ขอบดำ 🟢
+                    marker.bindPopup(`
+                        <div class="custom-text-outline" style="font-family: 'Chakra Petch', sans-serif; font-weight: bold;">
+                            ${data.name}
+                        </div>
+                    `, { 
+                        className: 'transparent-popup',
+                        closeButton: false // ซ่อนปุ่มกากบาทปิด (ผู้ใช้กดที่อื่นเพื่อปิดแทนได้)
+                    });
 
-                    // สร้างการ์ดแสดงผล
                     const card = document.createElement('div');
                     card.className = 'card cursor-pointer';
+                    // ปรับโครงสร้าง flex ให้ปุ่มถูกดันลงไปล่างสุดเสมอด้วย mt-auto
                     card.innerHTML = `
                         <img src="${data.imageUrl}" alt="${data.name}" onerror="this.onerror=null; this.src='https://placehold.co/400x200/eeeeee/999999?text=No+Image';">
-                        <div class="p-4 flex-1 flex flex-col justify-between overflow-hidden">
-                            <div>
-                                <h3 class="text-lg font-bold text-gray-800 leading-tight truncate">${data.name}</h3>
-                                <p class="text-sm text-gray-600 mt-2 line-clamp-2">${data.descTh}</p>
-                            </div>
-                            <button id="btn-${id}" onclick="event.stopPropagation(); window.toggleRoute('${id}', '${data.name}', ${data.lat}, ${data.lng})" class="mt-4 bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm shrink-0">
+                        <div class="p-3 md:p-4 flex-1 flex flex-col overflow-hidden">
+                            <h3 class="text-base md:text-lg font-bold text-gray-800 leading-tight truncate">${data.name}</h3>
+                            <p class="text-xs md:text-sm text-gray-600 mt-1 line-clamp-2">${data.descTh}</p>
+                            
+                            <button id="btn-${id}" onclick="event.stopPropagation(); window.toggleRoute('${id}', '${data.name}', ${data.lat}, ${data.lng})" class="mt-auto bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm shrink-0">
                                 📍 เพิ่มลงทริป
                             </button>
                         </div>
                     `;
                     
-                    // เมื่อคลิกการ์ด ให้เด้งแผนที่ไปหาหมุด
                     card.addEventListener('click', () => {
                         map.flyTo([data.lat, data.lng], 16, { duration: 1.5 });
                         setTimeout(() => marker.openPopup(), 1500);
