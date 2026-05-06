@@ -17,10 +17,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* บังคับใช้ฟอนต์ Chakra Petch ทั้งเว็บไซต์ */
         body { font-family: 'Chakra Petch', sans-serif; }
         
-        /* ปรับสัดส่วน แผนที่ 55% : การ์ด 45% เพื่อให้ปุ่มไม่หายบนมือถือ */
         #map { height: 55vh; width: 100%; z-index: 1; }
         
         .slider-container { 
@@ -35,66 +33,48 @@
         }
         
         .card { 
-            min-width: 85%; 
-            max-width: 85%;
-            height: 100%; /* ให้เต็มพื้นที่ 45vh */
+            min-width: 85%; max-width: 85%;
+            height: 100%; 
             scroll-snap-align: center; 
             background: white; 
             border-radius: 16px; 
             overflow: hidden; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.08); 
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
         }
         
         @media (min-width: 768px) {
             .card { min-width: 300px; max-width: 300px; }
         }
         
-        /* ปรับขนาดรูปให้พอดี ไม่แย่งที่ปุ่ม */
         .card img { 
-            height: 130px; 
-            width: 100%; 
-            object-fit: cover; 
-            background-color: #e5e7eb;
-            flex-shrink: 0;
+            height: 130px; width: 100%; 
+            object-fit: cover; background-color: #e5e7eb; flex-shrink: 0;
         }
         
         .slider-container::-webkit-scrollbar { display: none; }
         .slider-container { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* --- CSS สำหรับปรับแต่ง Popup แผนที่โปร่งใส --- */
         .transparent-popup .leaflet-popup-content-wrapper {
-            background: transparent;
-            border: none;
-            box-shadow: none;
+            background: transparent; border: none; box-shadow: none;
         }
-        .transparent-popup .leaflet-popup-tip-container {
-            display: none; /* ซ่อนลูกศรชี้ลง */
-        }
-        .transparent-popup .leaflet-popup-content {
-            margin: 0;
-            text-align: center;
-        }
+        .transparent-popup .leaflet-popup-tip-container { display: none; }
+        .transparent-popup .leaflet-popup-content { margin: 0; text-align: center; }
+        
         .custom-text-outline {
-            color: #ffffff;
-            font-size: 1.1rem;
-            white-space: nowrap;
-            /* สร้างขอบสีดำรอบตัวหนังสือ */
-            text-shadow: 
-                -2px -2px 0 #000,  
-                 2px -2px 0 #000,
-                -2px  2px 0 #000,
-                 2px  2px 0 #000,
-                 0px  4px 6px rgba(0,0,0,0.8);
+            color: #ffffff; font-size: 1.1rem; white-space: nowrap;
+            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px  2px 0 #000, 2px  2px 0 #000, 0px  4px 6px rgba(0,0,0,0.8);
         }
+        
+        /* สไตล์สำหรับดาวรีวิว */
+        .star-btn { transition: color 0.2s; }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden relative">
 
     <!-- ปุ่มจัดทริป -->
     <button onclick="window.toggleRoutePanel()" class="fixed top-4 right-4 z-[1000] bg-blue-600 text-white px-4 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition">
-        🗺️ จัดทริป 
+        🗺️ ทริป 
         <span id="routeBadge" class="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-inner">0</span>
     </button>
 
@@ -110,23 +90,55 @@
         </div>
     </div>
 
+    <!-- 🟢 หน้าต่าง (Modal) สำหรับรีวิว 🟢 -->
+    <div id="reviewModal" class="fixed inset-0 bg-black/60 z-[2000] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <!-- หัว Modal -->
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold text-lg text-gray-800 flex-1 truncate pr-4" id="reviewPlaceName">ชื่อสถานที่</h3>
+                <button onclick="window.closeReviewModal()" class="text-gray-400 hover:text-red-500 text-2xl leading-none">&times;</button>
+            </div>
+            
+            <!-- ส่วนแสดงรีวิวเดิม (เลื่อนขึ้นลงได้) -->
+            <div id="reviewsContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-100/50">
+                <div class="text-center text-gray-400 text-sm py-4">กำลังโหลดรีวิว...</div>
+            </div>
+
+            <!-- ส่วนเขียนรีวิวใหม่ -->
+            <form id="reviewForm" class="p-4 border-t bg-white space-y-3">
+                <input type="hidden" id="reviewPlaceId">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-gray-700">ให้คะแนน:</span>
+                    <div id="starSelector" class="flex text-2xl cursor-pointer text-gray-300">
+                        <span class="star-btn hover:scale-110" data-val="1">★</span>
+                        <span class="star-btn hover:scale-110" data-val="2">★</span>
+                        <span class="star-btn hover:scale-110" data-val="3">★</span>
+                        <span class="star-btn hover:scale-110" data-val="4">★</span>
+                        <span class="star-btn hover:scale-110" data-val="5">★</span>
+                    </div>
+                    <input type="hidden" id="selectedRating" required>
+                </div>
+                <textarea id="reviewText" required rows="2" placeholder="เขียนความประทับใจสั้นๆ..." class="w-full border border-gray-300 p-2.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-yellow-400"></textarea>
+                <button type="submit" id="submitReviewBtn" class="w-full bg-yellow-400 text-yellow-900 font-bold py-2.5 rounded-lg hover:bg-yellow-500 transition shadow-sm">
+                    ส่งรีวิว
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- ส่วนแสดงแผนที่ -->
     <div id="map"></div>
 
     <!-- ส่วนการ์ดสไลด์แสดงข้อมูล -->
-    <div id="places-slider" class="slider-container">
-        <div class="w-full flex items-center justify-center text-gray-500">
-            กำลังโหลดข้อมูลสถานที่...
-        </div>
-    </div>
+    <div id="places-slider" class="slider-container"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script type="module">
+        // 🔴 นำเข้าคำสั่ง addDoc, query, orderBy สำหรับระบบรีวิว 🔴
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-        // ข้อมูล Firebase ของคุณ
         const firebaseConfig = {
             apiKey: "AIzaSyBvXRATBf2x1Lq_JToL2rlQYOh8mK65tIU",
             authDomain: "suchartstudio-9a78d.firebaseapp.com",
@@ -141,100 +153,176 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // ตั้งค่าแผนที่เริ่มต้น
         const map = L.map('map', { zoomControl: false }).setView([16.4322, 102.8236], 13);
         L.control.zoom({ position: 'topleft' }).addTo(map);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap',
-            maxZoom: 19
-        }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
         // --- ระบบจัดทริปนำทาง ---
         window.selectedPlaces = []; 
-
         window.toggleRoute = function(id, name, lat, lng) {
             const index = window.selectedPlaces.findIndex(p => p.id === id);
             const btn = document.getElementById(`btn-${id}`);
-            
             if(index > -1) {
                 window.selectedPlaces.splice(index, 1);
                 if(btn) {
-                    btn.innerHTML = "📍 เพิ่มลงทริป";
-                    btn.className = "mt-auto bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm shrink-0";
+                    btn.innerHTML = "📍 ลงทริป";
+                    btn.className = "flex-1 bg-blue-50 text-blue-600 border border-blue-200 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 transition shadow-sm truncate";
                 }
             } else {
                 window.selectedPlaces.push({ id, name, lat, lng });
                 if(btn) {
                     btn.innerHTML = "✅ เลือกแล้ว";
-                    btn.className = "mt-auto bg-green-50 text-green-700 border border-green-300 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-green-100 transition shadow-sm shrink-0";
+                    btn.className = "flex-1 bg-green-50 text-green-700 border border-green-300 py-2 rounded-lg text-sm font-bold hover:bg-green-100 transition shadow-sm truncate";
                 }
             }
             window.updateRouteUI();
         }
 
         window.updateRouteUI = function() {
-            const count = window.selectedPlaces.length;
-            document.getElementById('routeBadge').innerText = count;
+            document.getElementById('routeBadge').innerText = window.selectedPlaces.length;
             const list = document.getElementById('routeList');
-            list.innerHTML = '';
-            
-            if(count === 0) {
+            if(window.selectedPlaces.length === 0) {
                 list.innerHTML = '<li class="text-gray-400 text-xs italic text-center py-2">ยังไม่ได้เลือกสถานที่</li>';
             } else {
-                window.selectedPlaces.forEach((p, idx) => {
-                    list.innerHTML += `
-                        <li class="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                            <span class="bg-blue-100 text-blue-700 rounded-full min-w-[24px] h-6 flex items-center justify-center text-xs font-bold">${idx+1}</span> 
-                            <span class="truncate text-gray-800 font-medium">${p.name}</span>
-                        </li>`;
-                });
+                list.innerHTML = window.selectedPlaces.map((p, idx) => `
+                    <li class="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <span class="bg-blue-100 text-blue-700 rounded-full min-w-[24px] h-6 flex items-center justify-center text-xs font-bold">${idx+1}</span> 
+                        <span class="truncate text-gray-800 font-medium">${p.name}</span>
+                    </li>`).join('');
             }
         }
 
-        window.toggleRoutePanel = function() {
-            const panel = document.getElementById('routePanel');
-            panel.classList.toggle('hidden');
-            panel.classList.toggle('flex');
-        }
-
+        window.toggleRoutePanel = () => { document.getElementById('routePanel').classList.toggle('hidden'); document.getElementById('routePanel').classList.toggle('flex'); }
+        
         window.clearRoute = function() {
             window.selectedPlaces = [];
             document.querySelectorAll('[id^="btn-"]').forEach(btn => {
-                btn.innerHTML = "📍 เพิ่มลงทริป";
-                btn.className = "mt-auto bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm shrink-0";
+                btn.innerHTML = "📍 ลงทริป";
+                btn.className = "flex-1 bg-blue-50 text-blue-600 border border-blue-200 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 transition shadow-sm truncate";
             });
             window.updateRouteUI();
             window.toggleRoutePanel(); 
         }
 
         window.startNavigation = function() {
-            if(window.selectedPlaces.length === 0) {
-                alert("กรุณาเลือกสถานที่ที่ต้องการไปอย่างน้อย 1 แห่งครับ");
-                return;
-            }
+            if(window.selectedPlaces.length === 0) return alert("กรุณาเลือกสถานที่อย่างน้อย 1 แห่งครับ");
             const coordsString = window.selectedPlaces.map(p => `${p.lat},${p.lng}`).join('/');
-            const mapsUrl = `https://www.google.com/maps/dir/${coordsString}`;
-            window.open(mapsUrl, '_blank');
+            window.open(`https://www.google.com/maps/dir/${coordsString}`, '_blank');
         }
 
-        // --- ระบบดึงข้อมูลแผนที่และการ์ด ---
+        // --- 🟢 ระบบจัดการรีวิว (Review System) 🟢 ---
+        
+        // 1. ระบบคลิกเลือกดาว
+        let currentRating = 0;
+        const stars = document.querySelectorAll('.star-btn');
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                currentRating = parseInt(this.getAttribute('data-val'));
+                document.getElementById('selectedRating').value = currentRating;
+                stars.forEach(s => {
+                    s.style.color = parseInt(s.getAttribute('data-val')) <= currentRating ? '#facc15' : '#d1d5db'; // สีเหลืองทอง / สีเทา
+                });
+            });
+        });
+
+        // 2. เปิดหน้าต่างรีวิว
+        window.openReviewModal = async function(placeId, placeName) {
+            document.getElementById('reviewPlaceId').value = placeId;
+            document.getElementById('reviewPlaceName').innerText = placeName;
+            document.getElementById('reviewModal').classList.remove('hidden');
+            document.getElementById('reviewModal').classList.add('flex');
+            
+            // เคลียร์ฟอร์ม
+            document.getElementById('reviewForm').reset();
+            currentRating = 0;
+            stars.forEach(s => s.style.color = '#d1d5db');
+            
+            await loadReviews(placeId);
+        }
+
+        window.closeReviewModal = function() {
+            document.getElementById('reviewModal').classList.add('hidden');
+            document.getElementById('reviewModal').classList.remove('flex');
+        }
+
+        // 3. ดึงข้อมูลรีวิวมาแสดง
+        async function loadReviews(placeId) {
+            const container = document.getElementById('reviewsContainer');
+            container.innerHTML = '<div class="text-center text-gray-400 text-sm py-4">กำลังโหลดรีวิว...</div>';
+            
+            try {
+                // ดึงจาก Subcollection "reviews" เรียงตามเวลาล่าสุด
+                const q = query(collection(db, "places", placeId, "reviews"), orderBy("timestamp", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    container.innerHTML = '<div class="text-center text-gray-400 text-sm py-8 bg-white rounded-xl border border-dashed">ยังไม่มีรีวิวสำหรับที่นี่<br>มารีวิวเป็นคนแรกสิ! 😊</div>';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    const rev = doc.data();
+                    const starsHtml = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
+                    
+                    container.innerHTML += `
+                        <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                            <div class="text-yellow-400 text-sm tracking-widest">${starsHtml}</div>
+                            <p class="text-sm text-gray-700 mt-1">${rev.text}</p>
+                            <div class="text-[10px] text-gray-400 mt-2 text-right">${new Date(rev.timestamp).toLocaleDateString('th-TH')}</div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                container.innerHTML = `<div class="text-center text-red-400 text-sm py-4">โหลดข้อมูลล้มเหลว<br>(${error.message})</div>`;
+            }
+        }
+
+        // 4. บันทึกรีวิวใหม่
+        document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rating = document.getElementById('selectedRating').value;
+            const text = document.getElementById('reviewText').value;
+            const placeId = document.getElementById('reviewPlaceId').value;
+            const btn = document.getElementById('submitReviewBtn');
+            
+            if(!rating || rating == 0) return alert("กรุณาให้ดาวก่อนส่งรีวิวครับ");
+
+            btn.disabled = true;
+            btn.innerText = "กำลังส่ง...";
+
+            try {
+                await addDoc(collection(db, "places", placeId, "reviews"), {
+                    rating: parseInt(rating),
+                    text: text,
+                    timestamp: Date.now()
+                });
+                
+                // โหลดรีวิวใหม่และเคลียร์ฟอร์ม
+                await loadReviews(placeId);
+                document.getElementById('reviewForm').reset();
+                currentRating = 0;
+                stars.forEach(s => s.style.color = '#d1d5db');
+                
+            } catch (error) {
+                alert("เกิดข้อผิดพลาด: " + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "ส่งรีวิว";
+            }
+        });
+
+        // --- โหลดแผนที่และการ์ด ---
         async function loadPlaces() {
             try {
                 const querySnapshot = await getDocs(collection(db, "places"));
                 const slider = document.getElementById('places-slider');
-                
                 slider.innerHTML = '';
 
-                if (querySnapshot.empty) {
-                    slider.innerHTML = '<div class="w-full flex items-center justify-center text-gray-500 font-medium">ยังไม่มีข้อมูลสถานที่</div>';
-                    return;
-                }
-                
                 querySnapshot.forEach((docSnapshot) => {
                     const id = docSnapshot.id;
                     const data = docSnapshot.data();
                     
-                    // ไอคอนภาพขนาดย่อ
                     const customIcon = L.divIcon({
                         className: '', 
                         html: `
@@ -242,35 +330,29 @@
                                 <img src="${data.imageUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
                             </div>
                         `,
-                        iconSize: [48, 48],
-                        iconAnchor: [24, 24],
-                        popupAnchor: [0, -30] // เลื่อน Popup ขึ้นไปอีกนิดไม่ให้บังรูป
+                        iconSize: [48, 48], iconAnchor: [24, 24], popupAnchor: [0, -30]
                     });
 
                     const marker = L.marker([data.lat, data.lng], { icon: customIcon }).addTo(map);
-                    
-                    // 🟢 ผูก Popup โปร่งใส ข้อความสีขาว ขอบดำ 🟢
-                    marker.bindPopup(`
-                        <div class="custom-text-outline" style="font-family: 'Chakra Petch', sans-serif; font-weight: bold;">
-                            ${data.name}
-                        </div>
-                    `, { 
-                        className: 'transparent-popup',
-                        closeButton: false // ซ่อนปุ่มกากบาทปิด (ผู้ใช้กดที่อื่นเพื่อปิดแทนได้)
-                    });
+                    marker.bindPopup(`<div class="custom-text-outline" style="font-family: 'Chakra Petch', sans-serif; font-weight: bold;">${data.name}</div>`, { className: 'transparent-popup', closeButton: false });
 
                     const card = document.createElement('div');
                     card.className = 'card cursor-pointer';
-                    // ปรับโครงสร้าง flex ให้ปุ่มถูกดันลงไปล่างสุดเสมอด้วย mt-auto
+                    // 🔴 ปรับเลย์เอาต์ปุ่มให้เป็น 2 ปุ่มเรียงคู่กัน 🔴
                     card.innerHTML = `
                         <img src="${data.imageUrl}" alt="${data.name}" onerror="this.onerror=null; this.src='https://placehold.co/400x200/eeeeee/999999?text=No+Image';">
                         <div class="p-3 md:p-4 flex-1 flex flex-col overflow-hidden">
                             <h3 class="text-base md:text-lg font-bold text-gray-800 leading-tight truncate">${data.name}</h3>
                             <p class="text-xs md:text-sm text-gray-600 mt-1 line-clamp-2">${data.descTh}</p>
                             
-                            <button id="btn-${id}" onclick="event.stopPropagation(); window.toggleRoute('${id}', '${data.name}', ${data.lat}, ${data.lng})" class="mt-auto bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-100 transition shadow-sm shrink-0">
-                                📍 เพิ่มลงทริป
-                            </button>
+                            <div class="flex gap-2 mt-auto shrink-0 pt-2">
+                                <button id="btn-${id}" onclick="event.stopPropagation(); window.toggleRoute('${id}', '${data.name}', ${data.lat}, ${data.lng})" class="flex-1 bg-blue-50 text-blue-600 border border-blue-200 py-2 rounded-lg text-sm font-bold hover:bg-blue-100 transition shadow-sm truncate">
+                                    📍 ลงทริป
+                                </button>
+                                <button onclick="event.stopPropagation(); window.openReviewModal('${id}', '${data.name}')" class="flex-1 bg-yellow-50 text-yellow-600 border border-yellow-200 py-2 rounded-lg text-sm font-bold hover:bg-yellow-100 transition shadow-sm truncate">
+                                    ⭐ รีวิว
+                                </button>
+                            </div>
                         </div>
                     `;
                     
@@ -282,9 +364,7 @@
                     slider.appendChild(card);
                 });
             } catch (error) {
-                console.error("Error loading places:", error);
-                document.getElementById('places-slider').innerHTML = 
-                    `<div class="w-full flex items-center justify-center text-red-500 font-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>`;
+                document.getElementById('places-slider').innerHTML = `<div class="w-full flex items-center justify-center text-red-500 font-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>`;
             }
         }
 
