@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ที่เที่ยวขอนแก่น Khon Kaen Guide</title>
     
-    <!-- 🟢 ตั้งค่า PWA 🟢 -->
+    <!-- ตั้งค่า PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
-<link rel="apple-touch-icon" href="./icon-192.png">
+    <link rel="apple-touch-icon" href="./icon-192.png">
     
     <!-- โหลด Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -111,7 +111,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-        // 🟢 ฝัง PWA Service Worker 🟢
+        // ฝัง PWA Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then(reg => console.log('PWA SW Registered')).catch(err => console.log('SW Error', err));
@@ -182,10 +182,17 @@
             window.toggleRoutePanel(); 
         }
 
+        // 🟢 อัปเดตฟังก์ชันเริ่มนำทาง ให้ใช้ตำแหน่งปัจจุบันเป็นจุดเริ่มต้น 🟢
         window.startNavigation = function() {
             if(window.selectedPlaces.length === 0) return alert("กรุณาเลือกสถานที่อย่างน้อย 1 แห่งครับ");
+            
+            // นำพิกัดมาต่อกัน
             const coordsString = window.selectedPlaces.map(p => `${p.lat},${p.lng}`).join('/');
-            window.open(`https://www.google.com/maps/dir/${coordsString}`, '_blank');
+            
+            // เคล็ดลับ: ใช้ // หลัง dir เพื่อตั้งต้นจาก My Location อัตโนมัติ
+            const mapsUrl = `https://www.google.com/maps/dir//${coordsString}`;
+            
+            window.open(mapsUrl, '_blank');
         }
 
         let currentRating = 0;
@@ -278,13 +285,10 @@
 
                     const card = document.createElement('div');
                     card.className = 'card cursor-pointer';
-                    
-                    // 🔴 โครงสร้างการ์ดแบบใหม่ ย้ายปุ่มไปมุมภาพ 🔴
                     card.innerHTML = `
                         <div class="relative w-full h-[140px] shrink-0">
                             <img src="${data.imageUrl}" alt="${data.name}" class="w-full h-full object-cover bg-gray-200" onerror="this.onerror=null; this.src='https://placehold.co/400x200/eeeeee/999999?text=No+Image';">
                             
-                            <!-- ปุ่มลอยอยู่มุมขวาบนของรูปภาพ -->
                             <div class="absolute top-2 right-2 flex gap-1.5 z-10">
                                 <button id="btn-${id}" onclick="event.stopPropagation(); window.toggleRoute('${id}', '${data.name}', ${data.lat}, ${data.lng})" class="bg-white/95 backdrop-blur-sm text-blue-700 border border-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold shadow-md hover:bg-blue-50 transition">
                                     📍 ลงทริป
