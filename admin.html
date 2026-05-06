@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เพิ่มสถานที่ท่องเที่ยว (Admin)</title>
-    <!-- โหลด Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
@@ -36,7 +35,6 @@
             <div>
                 <label class="block text-sm font-semibold text-gray-700">ภาพถ่ายสถานที่</label>
                 <input type="file" id="imageFile" accept="image/*" required class="w-full border border-gray-300 p-2 rounded-lg mt-1 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                <p class="text-xs text-gray-500 mt-1">* รูปจะถูกแปลและอัปโหลดไป Google Drive อัตโนมัติ</p>
             </div>
             
             <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 disabled:opacity-50 flex justify-center items-center">
@@ -48,11 +46,9 @@
     </div>
 
     <script type="module">
-        // นำเข้า Firebase v12.12.1
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-        // Config ของคุณ
         const firebaseConfig = {
             apiKey: "AIzaSyBvXRATBf2x1Lq_JToL2rlQYOh8mK65tIU",
             authDomain: "suchartstudio-9a78d.firebaseapp.com",
@@ -67,7 +63,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // URL จาก Google Apps Script
+        // URL Google Apps Script ของคุณ
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxykjEyBWj-HdywnTu4rxNSHZOtd5ec2o0um_DYmU8W0EM0tv8u1OSWsjOOLMn9BhzvSw/exec";
 
         function showStatus(message, type) {
@@ -81,7 +77,6 @@
             } else if(type === 'error') {
                 statusBox.classList.add('bg-red-100', 'text-red-700');
             }
-            
             statusBox.innerText = message;
         }
 
@@ -91,19 +86,18 @@
             btn.disabled = true;
             btn.innerText = "กำลังดำเนินการ...";
             
-            showStatus("กำลังอัปโหลดรูปภาพและแปลภาษา... (อาจใช้เวลาสักครู่)", 'loading');
+            showStatus("กำลังอัปโหลดและแปลภาษา... (อาจใช้เวลาสักครู่)", 'loading');
 
             const file = document.getElementById('imageFile').files[0];
             const reader = new FileReader();
 
             reader.onload = async function() {
                 try {
-                    // 1. ส่งข้อมูลภาพและข้อความไป Google Apps Script
                     const response = await fetch(GAS_URL, {
                         method: 'POST',
                         body: JSON.stringify({
                             filename: file.name,
-                            image: reader.result, // ข้อมูลภาพแบบ Base64
+                            image: reader.result, 
                             descriptionTh: document.getElementById('desc').value
                         })
                     });
@@ -111,36 +105,33 @@
                     const gasResult = await response.json();
                     
                     if(gasResult.success) {
-                        showStatus("แปลภาษาสำเร็จ กำลังบันทึกลงฐานข้อมูล...", 'loading');
+                        showStatus("แปลภาษาสำเร็จ กำลังบันทึก...", 'loading');
                         
-                        // 2. บันทึกข้อมูลทั้งหมดลง Firebase Firestore (Collection: places)
                         await addDoc(collection(db, "places"), {
                             name: document.getElementById('name').value,
                             lat: parseFloat(document.getElementById('lat').value),
                             lng: parseFloat(document.getElementById('lng').value),
                             descTh: document.getElementById('desc').value,
-                            descEn: gasResult.descEn, // ข้อความภาษาอังกฤษที่ได้จาก GAS
-                            imageUrl: gasResult.imageUrl // ลิงก์รูปภาพจาก Google Drive
+                            descEn: gasResult.descEn, 
+                            imageUrl: gasResult.imageUrl 
                         });
                         
-                        showStatus("บันทึกข้อมูลสถานที่สำเร็จเรียบร้อย!", 'success');
+                        showStatus("บันทึกข้อมูลสำเร็จเรียบร้อย!", 'success');
                         document.getElementById('addPlaceForm').reset();
                     } else {
-                        showStatus("เกิดข้อผิดพลาดจากระบบเซิร์ฟเวอร์: " + gasResult.error, 'error');
+                        showStatus("เกิดข้อผิดพลาดจากเซิร์ฟเวอร์: " + gasResult.error, 'error');
                     }
                 } catch (error) {
                     showStatus("เกิดข้อผิดพลาด: " + error.message, 'error');
                 } finally {
                     btn.disabled = false;
                     btn.innerText = "บันทึกข้อมูล";
-                    // ซ่อนข้อความแจ้งเตือนหลังจาก 5 วินาทีถ้าบันทึกสำเร็จ
                     if(document.getElementById('statusBox').classList.contains('bg-green-100')) {
                         setTimeout(() => document.getElementById('statusBox').classList.add('hidden'), 5000);
                     }
                 }
             };
             
-            // เริ่มอ่านไฟล์ภาพ
             reader.readAsDataURL(file);
         });
     </script>
