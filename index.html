@@ -18,65 +18,21 @@
     <style>
         body { font-family: 'Chakra Petch', sans-serif; background-color: #f8fafc; }
         
-        /* 🟢 1. ให้แผนที่กินพื้นที่ที่เหลือทั้งหมด 🟢 */
-        #map { 
-            flex: 1; /* ขยายเต็มพื้นที่ว่าง */
-            min-height: 40vh; /* กันไม่ให้แผนที่เล็กเกินไปบนมือถือจอเล็ก */
-            width: 100%; 
-            z-index: 1; 
-        }
+        #map { flex: 1; min-height: 40vh; width: 100%; z-index: 1; }
         
-        /* 🟢 2. กล่องสไลด์สูงเท่ากับเนื้อหา 🟢 */
-        .slider-container { 
-            /* ลบความสูงตายตัวออก (height) */
-            padding: 1rem; 
-            gap: 1rem; 
-            background: #f1f5f9; 
-            display: flex; 
-            overflow-x: auto; 
-            scroll-snap-type: x mandatory; 
-            align-items: stretch; /* บังคับให้การ์ดทุกใบสูงเท่ากัน */
-        }
-        
-        /* 🟢 3. การ์ดยืดหยุ่นตามความสูง 🟢 */
-        .card { 
-            min-width: 85%; 
-            max-width: 85%; 
-            height: auto; /* ปล่อยให้ความสูงไหลตามเนื้อหา */
-            scroll-snap-align: center; 
-            background: white; 
-            border-radius: 1.25rem; 
-            overflow: hidden; 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-            display: flex; 
-            flex-direction: column; 
-            border: 1px solid #e2e8f0; 
-        }
-        
-        @media (min-width: 768px) {
-            .card { min-width: 320px; max-width: 320px; }
-        }
-        
+        .slider-container { padding: 1rem; gap: 1rem; background: #f1f5f9; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; align-items: stretch; }
+        .card { min-width: 85%; max-width: 85%; height: auto; scroll-snap-align: center; background: white; border-radius: 1.25rem; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; border: 1px solid #e2e8f0; }
+        @media (min-width: 768px) { .card { min-width: 320px; max-width: 320px; } }
         .slider-container::-webkit-scrollbar { display: none; }
         .slider-container { -ms-overflow-style: none; scrollbar-width: none; }
 
         .transparent-popup .leaflet-popup-content-wrapper { background: transparent; border: none; box-shadow: none; }
         .transparent-popup .leaflet-popup-tip-container { display: none; }
         .transparent-popup .leaflet-popup-content { margin: 0; text-align: center; }
+        .custom-text-outline { color: #ffffff; font-size: 1.25rem; white-space: nowrap; font-weight: 700; text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px  2px 0 #000, 2px  2px 0 #000, 0px 4px 8px rgba(0,0,0,0.9); }
         
-        .custom-text-outline {
-            color: #ffffff; font-size: 1.25rem; white-space: nowrap; font-weight: 700;
-            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px  2px 0 #000, 2px  2px 0 #000, 0px 4px 8px rgba(0,0,0,0.9);
-        }
-        
-        .user-location-marker {
-            background-color: #3b82f6; width: 16px; height: 16px; border-radius: 50%;
-            border: 3px solid white; box-shadow: 0 0 10px rgba(59, 130, 246, 0.8); position: relative;
-        }
-        .user-location-marker::after {
-            content: ''; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px;
-            border-radius: 50%; border: 2px solid #3b82f6; animation: pulse 1.5s infinite; opacity: 0;
-        }
+        .user-location-marker { background-color: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(59, 130, 246, 0.8); position: relative; }
+        .user-location-marker::after { content: ''; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px; border-radius: 50%; border: 2px solid #3b82f6; animation: pulse 1.5s infinite; opacity: 0; }
         @keyframes pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
     </style>
 </head>
@@ -88,7 +44,14 @@
     </button>
 
     <div id="routePanel" class="fixed top-20 right-5 z-[1000] bg-white rounded-2xl shadow-2xl p-5 w-80 hidden flex-col gap-4 border border-slate-200 max-h-[60vh]">
-        <h3 class="font-bold text-slate-800 text-xl border-b border-slate-100 pb-3">🚗 แผนเดินทางของคุณ</h3>
+        <!-- 🟢 เพิ่มปุ่มจัดเรียงอัตโนมัติ (เรียงใกล้ไปไกล) 🟢 -->
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-800 text-xl">🚗 แผนเดินทาง</h3>
+            <button onclick="window.sortTrip(); window.updateRouteUI();" class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1.5 rounded-lg font-bold border border-blue-200 hover:bg-blue-100 transition shadow-sm active:scale-95">
+                ✨ เรียงใกล้ ➜ ไกล
+            </button>
+        </div>
+        
         <ul id="routeList" class="text-slate-600 space-y-3 overflow-y-auto pr-1">
             <li class="text-slate-400 text-sm italic text-center py-4">ยังไม่ได้ปักหมุดสถานที่</li>
         </ul>
@@ -152,72 +115,64 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
         // --- ระบบเก็บสถิติ ---
-        let startTime = Date.now();
-        let statDocId = null;
-        const getDeviceType = () => {
-            const ua = navigator.userAgent;
-            if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return "Tablet";
-            if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-mobi/i.test(ua)) return "Mobile";
-            return "Desktop";
-        };
-
-        async function startTracking(location) {
-            try {
-                const docRef = await addDoc(collection(db, "site_statistics"), {
-                    device: getDeviceType(), location: location, timestamp: Date.now(), duration: 0, userAgent: navigator.userAgent
-                });
-                statDocId = docRef.id;
-                setInterval(updateDuration, 10000);
-            } catch (e) { console.error("Error saving stats", e); }
-        }
-
-        async function updateDuration() {
-            if (!statDocId) return;
-            try { await updateDoc(doc(db, "site_statistics", statDocId), { duration: Math.floor((Date.now() - startTime) / 1000) }); } 
-            catch (e) { console.error("Error updating duration", e); }
-        }
+        let startTime = Date.now(); let statDocId = null;
+        const getDeviceType = () => { const ua = navigator.userAgent; if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return "Tablet"; if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-mobi/i.test(ua)) return "Mobile"; return "Desktop"; };
+        async function startTracking(location) { try { const docRef = await addDoc(collection(db, "site_statistics"), { device: getDeviceType(), location: location, timestamp: Date.now(), duration: 0, userAgent: navigator.userAgent }); statDocId = docRef.id; setInterval(updateDuration, 10000); } catch (e) { } }
+        async function updateDuration() { if (!statDocId) return; try { await updateDoc(doc(db, "site_statistics", statDocId), { duration: Math.floor((Date.now() - startTime) / 1000) }); } catch (e) { } }
 
         // --- ระบบ Heatmap และตำแหน่ง ---
         window.userCurrentLocation = null;
         async function initUserLocationAndHeatmap() {
             let locForStats = { lat: null, lng: null };
-            
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async (position) => {
                     window.userCurrentLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
                     locForStats = window.userCurrentLocation;
-                    
                     const userIcon = L.divIcon({ className: 'user-location-marker', iconSize: [16, 16] });
-                    L.marker([window.userCurrentLocation.lat, window.userCurrentLocation.lng], { icon: userIcon })
-                        .addTo(map).bindPopup("<b style='font-family: Chakra Petch;'>📍 ตำแหน่งของคุณ</b>");
+                    L.marker([window.userCurrentLocation.lat, window.userCurrentLocation.lng], { icon: userIcon }).addTo(map).bindPopup("<b style='font-family: Chakra Petch;'>📍 ตำแหน่งของคุณ</b>");
                     map.setView([window.userCurrentLocation.lat, window.userCurrentLocation.lng], 14);
-
-                    try { await addDoc(collection(db, "user_locations"), { lat: window.userCurrentLocation.lat, lng: window.userCurrentLocation.lng, timestamp: Date.now() }); } 
-                    catch (e) {}
-                    
+                    try { await addDoc(collection(db, "user_locations"), { lat: window.userCurrentLocation.lat, lng: window.userCurrentLocation.lng, timestamp: Date.now() }); } catch (e) {}
                     startTracking(locForStats);
                 }, () => { startTracking(locForStats); });
             } else { startTracking(locForStats); }
 
             try {
-                const snap = await getDocs(collection(db, "user_locations"));
-                const heatData = [];
+                const snap = await getDocs(collection(db, "user_locations")); const heatData = [];
                 snap.forEach(d => { if(d.data().lat) heatData.push([d.data().lat, d.data().lng, 0.6]); });
                 if(heatData.length > 0) L.heatLayer(heatData, { radius: 25, blur: 15, maxZoom: 15, gradient: { 0.4: 'blue', 0.6: 'lime', 0.8: 'yellow', 1.0: 'red' } }).addTo(map);
             } catch (e) {}
         }
 
-        // --- ระบบจัดทริป ---
+        // --- ระบบจัดทริป และ เลื่อนลำดับ ---
         window.selectedPlaces = []; 
+        
+        // ฟังก์ชันเรียงอัตโนมัติ ใกล้ไปไกล
         window.sortTrip = function() {
-            if(!window.userCurrentLocation || window.selectedPlaces.length <= 1) return;
+            if(!window.userCurrentLocation || window.selectedPlaces.length <= 1) {
+                if(!window.userCurrentLocation) alert("ไม่พบพิกัดของคุณครับ (กรุณาอนุญาตให้เว็บเข้าถึง Location)");
+                return;
+            }
             const userLatLng = L.latLng(window.userCurrentLocation.lat, window.userCurrentLocation.lng);
             window.selectedPlaces.sort((a, b) => userLatLng.distanceTo(L.latLng(a.lat, a.lng)) - userLatLng.distanceTo(L.latLng(b.lat, b.lng)));
         }
 
+        // 🟢 ฟังก์ชันเลื่อนลำดับด้วยตัวเอง 🟢
+        window.moveRouteItem = function(index, direction) {
+            const newIndex = index + direction;
+            // ถ้าเลื่อนเกินขอบเขต ให้ยกเลิก
+            if (newIndex < 0 || newIndex >= window.selectedPlaces.length) return;
+            
+            // สลับตำแหน่งใน Array
+            const temp = window.selectedPlaces[index];
+            window.selectedPlaces[index] = window.selectedPlaces[newIndex];
+            window.selectedPlaces[newIndex] = temp;
+            
+            // อัปเดต UI ทันที
+            window.updateRouteUI();
+        }
+
         window.toggleRoute = function(id, name, lat, lng) {
-            const index = window.selectedPlaces.findIndex(p => p.id === id);
-            const btn = document.getElementById(`btn-${id}`);
+            const index = window.selectedPlaces.findIndex(p => p.id === id); const btn = document.getElementById(`btn-${id}`);
             if(index > -1) {
                 window.selectedPlaces.splice(index, 1);
                 if(btn) { btn.innerHTML = "📍 ลงทริป"; btn.className = "bg-white/95 backdrop-blur-md text-blue-700 border border-white/50 px-2.5 py-1.5 rounded-lg text-[11px] font-bold shadow-md hover:bg-blue-50 transition-all active:scale-90"; }
@@ -225,7 +180,8 @@
                 window.selectedPlaces.push({ id, name, lat, lng });
                 if(btn) { btn.innerHTML = "✅ เลือกแล้ว"; btn.className = "bg-green-500 text-white border border-green-400 px-2.5 py-1.5 rounded-lg text-[11px] font-bold shadow-md shadow-green-200 transition-all active:scale-90"; }
             }
-            window.sortTrip(); window.updateRouteUI();
+            // ปิด auto-sort ตรงนี้เพื่อไม่ให้กวนการจัดคิวเองของผู้ใช้
+            window.updateRouteUI();
         }
 
         window.updateRouteUI = function() {
@@ -233,14 +189,27 @@
             const list = document.getElementById('routeList');
             if(window.selectedPlaces.length === 0) { list.innerHTML = '<li class="text-slate-400 text-sm italic text-center py-4">ยังไม่ได้ปักหมุดสถานที่</li>'; } 
             else {
-                list.innerHTML = window.selectedPlaces.map((p, idx) => `
-                    <li class="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                        <span class="bg-blue-600 text-white rounded-lg min-w-[24px] h-6 flex items-center justify-center text-xs font-bold">${idx+1}</span> 
-                        <div class="flex-1 min-w-0">
-                            <div class="truncate text-slate-800 font-semibold text-sm leading-none">${p.name}</div>
-                            ${window.userCurrentLocation ? `<div class="text-[10px] text-slate-400 mt-1">ระยะทาง: ${(L.latLng(window.userCurrentLocation.lat, window.userCurrentLocation.lng).distanceTo(L.latLng(p.lat, p.lng)) / 1000).toFixed(1)} กม.</div>` : ''}
+                list.innerHTML = window.selectedPlaces.map((p, idx) => {
+                    let distanceBadge = '';
+                    if (window.userCurrentLocation) {
+                        const distKm = (L.latLng(window.userCurrentLocation.lat, window.userCurrentLocation.lng).distanceTo(L.latLng(p.lat, p.lng)) / 1000).toFixed(1);
+                        distanceBadge = `<span class="text-[11px] font-bold text-blue-600 bg-blue-100/60 border border-blue-200/60 px-2 py-0.5 rounded-md whitespace-nowrap shadow-sm">${distKm} กม.</span>`;
+                    }
+                    
+                    // 🟢 เพิ่มปุ่มลูกศรขึ้น/ลง ตรงด้านหน้าของแต่ละแถว 🟢
+                    return `
+                    <li class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <div class="flex flex-col gap-0.5">
+                            <button onclick="window.moveRouteItem(${idx}, -1)" class="text-slate-400 hover:text-blue-600 bg-slate-200/50 hover:bg-blue-100 rounded px-1.5 py-0.5 text-[10px] transition-colors ${idx === 0 ? 'invisible' : ''}">▲</button>
+                            <button onclick="window.moveRouteItem(${idx}, 1)" class="text-slate-400 hover:text-blue-600 bg-slate-200/50 hover:bg-blue-100 rounded px-1.5 py-0.5 text-[10px] transition-colors ${idx === window.selectedPlaces.length - 1 ? 'invisible' : ''}">▼</button>
                         </div>
-                    </li>`).join('');
+                        <span class="bg-blue-600 text-white rounded-lg min-w-[24px] h-6 flex items-center justify-center text-xs font-bold shadow-sm">${idx+1}</span> 
+                        <div class="flex-1 flex items-center justify-between min-w-0 gap-2">
+                            <span class="truncate text-slate-800 font-semibold text-sm">${p.name}</span>
+                            ${distanceBadge}
+                        </div>
+                    </li>`;
+                }).join('');
             }
         }
 
@@ -285,7 +254,6 @@
 
                     const card = document.createElement('div'); card.className = 'card cursor-pointer';
                     card.innerHTML = `
-                        <!-- 🟢 ปรับลดความสูงของรูปภาพให้กะทัดรัดลง (h-[120px]) 🟢 -->
                         <div class="relative w-full h-[120px] shrink-0">
                             <img src="${data.imageUrl}" alt="${data.name}" class="w-full h-full object-cover bg-slate-200" onerror="this.onerror=null; this.src='https://placehold.co/400x200?text=Khon+Kaen';">
                             <div class="absolute top-2 right-2 flex gap-1.5 z-10">
@@ -293,7 +261,6 @@
                                 <button onclick="event.stopPropagation(); window.openReviewModal('${id}', '${data.name}')" class="bg-white/95 backdrop-blur-md text-amber-600 border border-white/50 px-2.5 py-1.5 rounded-lg text-[11px] font-bold shadow-md hover:bg-amber-50 transition-all active:scale-90">⭐ รีวิว</button>
                             </div>
                         </div>
-                        <!-- 🟢 พื้นที่ข้อความจะขยายพอดี ไม่เหลือที่ว่างเยอะเกินไป 🟢 -->
                         <div class="p-4 flex-1 flex flex-col justify-start overflow-hidden">
                             <h3 class="text-lg font-bold text-slate-800 leading-tight mb-1 truncate">${data.name}</h3>
                             <p class="text-sm text-slate-500 leading-relaxed line-clamp-2">${data.descTh}</p>
